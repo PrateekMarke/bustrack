@@ -32,33 +32,38 @@ class _MapscreenState extends State<MyMapscreen> {
 
   // ✅ Store Driver's Location in Firestore
   Future<void> storeDriverLocation(LatLng location) async {
-    try {
-      User? user = _auth.currentUser;
-      if (user == null) {
-        throw FirebaseAuthException(code: "not-authenticated", message: "User is not logged in.");
-      }
-
+  try {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(code: "not-authenticated", message: "User is not authenticated.");
+    }
       String uid = user.uid; // Get current driver ID
 
-      await _firestore.collection("driver_locations").doc(uid).set({
-        "latitude": location.latitude,
-        "longitude": location.longitude,
-        "timestamp": FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+    await FirebaseFirestore.instance.collection("driver_locations").doc(uid).set({
+      "latitude": location.latitude,
+      "longitude": location.longitude,
+      "timestamp": FieldValue.serverTimestamp(),
+    });
 
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Location updated successfully!")),
       );
 
-      // 🔥 Navigate back to DriverDetailsScreen with location data
-      Navigator.pop(context, location);
-
-    } catch (e) {
+      // Use 'mounted' before popping to avoid errors
+      if (mounted) {
+        Navigator.pop(context, location);
+      }
+    }
+  } catch (e) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: ${e.toString()}")),
       );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
