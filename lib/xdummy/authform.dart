@@ -1,8 +1,10 @@
-import 'package:bustrack/xdummy/driverscreen.dart';
-import 'package:bustrack/xdummy/homescreen.dart';
+import 'package:bustrack/xdummy/driverpages/driverscreen.dart';
+import 'package:bustrack/xdummy/driverpages/seatListScreen.dart';
+import 'package:bustrack/xdummy/studentspages/bus_selection.dart';
+import 'package:bustrack/xdummy/studentspages/studentscree.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 
 class AuthForm extends StatefulWidget {
   final String userType;
@@ -15,11 +17,13 @@ class AuthForm extends StatefulWidget {
 
 class _AuthFormState extends State<AuthForm> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool isLogin = true;
   bool isLoading = false;
 
+  // ✅ Authenticate & Redirect
   void authenticate() async {
     setState(() => isLoading = true);
     try {
@@ -36,23 +40,33 @@ class _AuthFormState extends State<AuthForm> {
         );
       }
 
-      // Navigate based on role (Student or Driver)
+      User? user = userCredential.user;
+      if (user == null) return;
+
       if (widget.userType == "Student") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Myhome()), // Student Page
-        );
+        // ✅ Check if student details exist in Firestore
+        DocumentSnapshot studentDoc = await _firestore.collection("students").doc(user.uid).get();
+
+        if (studentDoc.exists) {
+          // Student data exists → Redirect to Bus Selection
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BusSelectionScreen(selectedBus: {},)));
+        } else {
+          // No student data → Redirect to StudentDetailsScreen
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => StudentDetailsScreen()));
+        }
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DriverDetailsScreen()), // Driver Page
-        );
+        // ✅ Driver Flow (Unchanged)
+        DocumentSnapshot driverDoc = await _firestore.collection("driver").doc(user.uid).get();
+
+        if (driverDoc.exists) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SeatListScreen()));
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DriverDetailsScreen()));
+        }
       }
 
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "An error occurred")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? "An error occurred")));
     }
     setState(() => isLoading = false);
   }
