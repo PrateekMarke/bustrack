@@ -1,7 +1,6 @@
 
 import 'package:bustrack/xdummy/authscreen.dart';
 import 'package:bustrack/xdummy/studentspages/studentbusstracking.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class TrackBusScreen extends StatelessWidget {
