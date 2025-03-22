@@ -2,6 +2,7 @@ import 'package:bustrack/xdummy/driverpages/driverscreen.dart';
 import 'package:bustrack/xdummy/driverpages/seatListScreen.dart';
 import 'package:bustrack/xdummy/studentspages/bus_selection.dart';
 import 'package:bustrack/xdummy/studentspages/studentscree.dart';
+import 'package:bustrack/xdummy/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -49,7 +50,7 @@ class _AuthFormState extends State<AuthForm> {
 
         if (studentDoc.exists) {
           // Student data exists → Redirect to Bus Selection
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BusSelectionScreen(selectedBus: {},)));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => TrackBusScreen(selectedBus: {},)));
         } else {
           // No student data → Redirect to StudentDetailsScreen
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => StudentDetailsScreen()));

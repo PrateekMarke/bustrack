@@ -31,7 +31,7 @@ Future<void> _fetchSeatCount() async {
 
     if (driverDoc.exists && driverDoc.data() != null) {
       int seatCount = driverDoc["seats"] ?? 0;
-      Map<String, dynamic> seatData = Map<String, dynamic>.from(driverDoc["seat_data"] ?? {});
+      Map<String, dynamic> seatData = Map<String, dynamic>.from(driverDoc["seats_data"] ?? {});
 
       setState(() {
         _seatCount = seatCount;
@@ -95,7 +95,7 @@ Future<void> _fetchSeatCount() async {
           IconButton(
             icon: Icon(Icons.map, color: Colors.black),
             onPressed: () {
-             //Navigate to location screen (Implement navigation)
+ 
             },
           ),
           IconButton(
@@ -113,7 +113,7 @@ Future<void> _fetchSeatCount() async {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded( // ✅ This prevents the entire GridView from causing overflow
+          Expanded(
             child: _seatCount == 0
                 ? Center(child: CircularProgressIndicator())
                 : Padding(
@@ -121,7 +121,7 @@ Future<void> _fetchSeatCount() async {
                     child: GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 1.2, // ✅ Adjusted to prevent overflow
+                        childAspectRatio: 1.2,
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
                       ),
@@ -144,7 +144,6 @@ Future<void> _fetchSeatCount() async {
                                 Text("ID: ${_seats[index]["student_id"]}"),
                                 SizedBox(height: 10),
 
-                                // ✅ Wrap in Expanded to prevent overflow
                                 Expanded(
                                   child: DropdownButton<String>(
                                     value: _seats[index]["status"],

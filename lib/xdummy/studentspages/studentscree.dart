@@ -1,7 +1,6 @@
 import 'package:bustrack/view/screens/location.dart'; // Import LocationService
-import 'package:bustrack/xdummy/mapscreen.dart'; // Import MapScreen for manual selection
-import 'package:bustrack/xdummy/multimapscreen.dart';
 import 'package:bustrack/xdummy/studentspages/bus_selection.dart';
+import 'package:bustrack/xdummy/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -20,14 +19,43 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   final TextEditingController _branchController = TextEditingController();
   final TextEditingController _yearController = TextEditingController();
 
-  LatLng? _selectedLocation; // Store selected location
-  bool _isLoading = false; // Track loading state
+  LatLng? _selectedLocation;
+  bool _isLoading = false;
+  bool _isButtonEnabled = false;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final LocationService _locationService = LocationService(); // ✅ Location Service
+  final LocationService _locationService = LocationService();
 
-  bool _isButtonEnabled = false; // Track button state
+  List<Map<String, dynamic>> _busList = []; // List of available buses
+  Map<String, dynamic>? _selectedBus; // Selected bus
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_validateFields);
+    _contactController.addListener(_validateFields);
+    _branchController.addListener(_validateFields);
+    _yearController.addListener(_validateFields);
+    _fetchBuses();
+  }
+
+  // ✅ Fetch available buses from Firestore
+  Future<void> _fetchBuses() async {
+    QuerySnapshot querySnapshot = await _firestore.collection("driver").get();
+    setState(() {
+      _busList = querySnapshot.docs.map((doc) {
+        return {
+          "id": doc.id,
+          "bus_name": doc["bus_name"],
+          "name": doc["name"],
+          "contact": doc["contact"],
+          "seats": doc["seats"],
+          "seats_data": doc["seats_data"],
+        };
+      }).toList();
+    });
+  }
 
   // ✅ Validate input fields and update button state
   void _validateFields() {
@@ -36,64 +64,16 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
           _contactController.text.isNotEmpty &&
           _branchController.text.isNotEmpty &&
           _yearController.text.isNotEmpty &&
-          _selectedLocation != null;
+          _selectedLocation != null &&
+          _selectedBus != null;
     });
   }
 
-  // ✅ Save student details to Firestore
-  Future<void> saveStudentDetails() async {
-    if (!_isButtonEnabled) return;
-
-    setState(() => _isLoading = true); // Show loading
-
-    try {
-      User? user = _auth.currentUser;
-      if (user == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("User not logged in!")));
-        }
-        return;
-      }
-
-      String uid = user.uid;
-
-      await _firestore.collection("students").doc(uid).set({
-        "name": _nameController.text,
-        "contact": int.parse(_contactController.text),
-        "branch": _branchController.text,
-        "year": _yearController.text,
-        "latitude": _selectedLocation!.latitude.toString(),
-        "longitude": _selectedLocation!.longitude.toString(),
-        "bus_id": "", // Default, can be updated when assigned to a bus
-        "timestamp": FieldValue.serverTimestamp(),
-      });
-        await _firestore.collection("student_location").doc(uid).set({
-        "latitude": _selectedLocation!.latitude,
-        "longitude": _selectedLocation!.longitude,
-        "timestamp": FieldValue.serverTimestamp(),
-      });
-
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("✅ Student details saved!")));
-
-        // ✅ Navigate back after saving details
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false); // Hide loading
-    }
-  }
-
-  // ✅ Get Current Location without opening map
+  // ✅ Get Current Location
   Future<void> getCurrentLocation() async {
     setState(() => _isLoading = true);
 
-    LatLng? location = await _locationService.getCurrentLocation( context); // No MapController needed
+    LatLng? location = await _locationService.getCurrentLocation(context);
 
     if (location != null) {
       setState(() {
@@ -105,23 +85,95 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("📍 Location Found: ${location.latitude}, ${location.longitude}")),
         );
-          Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BusSelectionScreen(selectedBus: {},)),
-        );
       }
     }
 
     setState(() => _isLoading = false);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _nameController.addListener(_validateFields);
-    _contactController.addListener(_validateFields);
-    _branchController.addListener(_validateFields);
-    _yearController.addListener(_validateFields);
+  // ✅ Save Student Details to Firestore & Assign Seat (Start from Index 1)
+  Future<void> _saveStudentDetails() async {
+    if (_auth.currentUser == null) {
+      print("❌ User not logged in!");
+      return;
+    }
+
+    try {
+      String userId = _auth.currentUser!.uid; // Get current user ID
+
+      // ✅ Save Student Details in Firestore
+      await _firestore.collection("students").doc(userId).set({
+        "name": _nameController.text,
+        "contact": _contactController.text,
+        "branch": _branchController.text,
+        "year": _yearController.text,
+        "latitude": _selectedLocation!.latitude,
+        "longitude": _selectedLocation!.longitude,
+        "bus_name": _selectedBus!["bus_name"],
+        "bus_id": _selectedBus!["id"], // Store bus ID for tracking
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+
+      print("✅ Student details saved successfully!");
+
+      // ✅ Fetch Bus Data to Update Seats
+      DocumentSnapshot busDoc = await _firestore.collection("driver").doc(_selectedBus!["id"]).get();
+      Map<String, dynamic> busData = busDoc.data() as Map<String, dynamic>;
+
+      // ✅ Ensure seats_data is a Map (Matching DriverDetailsScreen)
+      Map<String, dynamic> seatsData = {};
+      if (busData["seats_data"] is Map) {
+        seatsData = Map<String, dynamic>.from(busData["seats_data"]);
+      } else {
+        print("❌ Error: seats_data is in an unknown format!");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("❌ Invalid seat data in Firestore!")));
+        return;
+      }
+
+      // ✅ Find the first empty seat and assign the student (Start from Index 1)
+      bool assigned = false;
+      for (int i = 1; i <= seatsData.length; i++) {
+        if (seatsData[i.toString()]["status"] == "Empty") {
+          seatsData[i.toString()] = {
+            "student_id": userId,
+            "student_name": _nameController.text,
+            "status": "Present"
+          };
+          assigned = true;
+          break; // ✅ Stop after assigning the first available seat
+        }
+      }
+
+      if (!assigned) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("⚠ No empty seats available!")));
+        return;
+      }
+
+      // ✅ Update Firestore with the updated seat list
+      await _firestore.collection("driver").doc(_selectedBus!["id"]).update({
+        "seats_data": seatsData,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+
+      print("✅ Student assigned to seat successfully!");
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("✅ Seat assigned successfully!")));
+
+      // ✅ Navigate to TrackBusScreen after saving data
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TrackBusScreen(selectedBus: _selectedBus!),
+        ),
+      );
+    } catch (e) {
+      print("❌ Error saving student details: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Failed to save student details: $e")),
+      );
+    }
   }
 
   @override
@@ -136,58 +188,53 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Student Details"), backgroundColor: Colors.yellow),
+      appBar: AppBar(title: const Text("Student Details"), backgroundColor: Colors.yellow),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: _nameController, decoration: InputDecoration(labelText: "Name")),
-            TextField(controller: _contactController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: "Contact Number")),
-            TextField(controller: _branchController, decoration: InputDecoration(labelText: "Branch")),
-            TextField(controller: _yearController, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: "Year")),
+            TextField(controller: _nameController, decoration: const InputDecoration(labelText: "Name")),
+            TextField(controller: _contactController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "Contact Number")),
+            TextField(controller: _branchController, decoration: const InputDecoration(labelText: "Branch")),
+            TextField(controller: _yearController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Year")),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-            // ✅ Select Location from Map Button
-            // ElevatedButton.icon(
-            //   icon: Icon(Icons.map),
-            //   label: Text(_selectedLocation == null ? "Select Location from Map" : "📍 Location Selected"),
-            //   onPressed: () async {
-            //     final LatLng? location = await Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => Mapscreen()),
-            //     );
+            // ✅ Bus Selection Dropdown
+            DropdownButtonFormField<Map<String, dynamic>>(
+              value: _selectedBus,
+              decoration: const InputDecoration(labelText: "Choose Bus"),
+              items: _busList.map((bus) {
+                return DropdownMenuItem(
+                  value: bus,
+                  child: Text(bus["bus_name"]),
+                );
+              }).toList(),
+              onChanged: (bus) {
+                setState(() {
+                  _selectedBus = bus;
+                  _validateFields();
+                });
+              },
+            ),
 
-            //     if (location != null) {
-            //       setState(() {
-            //         _selectedLocation = location;
-            //         _validateFields();
-            //       });
-            //     }
-            //   },
-            // ),
+            const SizedBox(height: 10),
 
-            SizedBox(height: 10),
-
-            // ✅ Get Current Location Button (without map)
             ElevatedButton.icon(
-              icon: Icon(Icons.gps_fixed),
+              icon: const Icon(Icons.gps_fixed),
               label: Text(_selectedLocation == null ? "Get Current Location" : "📍 Location Found"),
               onPressed: _isLoading ? null : getCurrentLocation,
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-            // ✅ Save Button
-            _isLoading
-                ? CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _isButtonEnabled ? saveStudentDetails : null,
-                    child: Text("Save Details"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isButtonEnabled ? Colors.blue : Colors.grey,
-                    ),
-                  ),
+            ElevatedButton(
+              onPressed: _isButtonEnabled ? _saveStudentDetails : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isButtonEnabled ? Colors.blue : Colors.grey,
+              ),
+              child: const Text("Next"),
+            ),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:bustrack/const/app_theme.dart';
 import 'package:bustrack/firebase_options.dart';
-import 'package:bustrack/xdummy/authscreen.dart';
+
+import 'package:bustrack/xdummy/mysplash.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: AppTheme.darkTheme,
-      home: AuthScreen(),
+      home: SplashScreen()
     );
   }
 }

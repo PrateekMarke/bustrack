@@ -53,10 +53,9 @@ Future<void> saveDriverDetails() async {
     String uid = user.uid;
     int seatCount = int.parse(_seatsController.text);
     
-    // ✅ Force Firestore to store as a Map instead of a List
     Map<String, dynamic> seatsData = {};  
-    for (int i = 1; i <= seatCount; i++) {  // 🔥 Start from 1 instead of 0
-      seatsData[i.toString()] = { // 🔥 Use "1", "2", etc., as keys
+    for (int i = 1; i <= seatCount; i++) {  
+      seatsData[i.toString()] = { 
         "student_id": "",
         "student_name": "Seat $i",
         "status": "Empty",
