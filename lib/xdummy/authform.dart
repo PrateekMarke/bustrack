@@ -1,6 +1,9 @@
 import 'package:bustrack/xdummy/driverpages/driverscreen.dart';
 import 'package:bustrack/xdummy/driverpages/seatListScreen.dart';
+<<<<<<< HEAD
 
+=======
+>>>>>>> be35bf2a0edc7ac9a538a2c3b5fda13d1a3065aa
 import 'package:bustrack/xdummy/studentspages/studentscree.dart';
 import 'package:bustrack/xdummy/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

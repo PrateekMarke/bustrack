@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 
 import 'package:bustrack/xdummy/maps/location.dart';
 
+=======
+import 'package:bustrack/view/screens/location.dart'; 
+>>>>>>> be35bf2a0edc7ac9a538a2c3b5fda13d1a3065aa
 import 'package:bustrack/xdummy/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
