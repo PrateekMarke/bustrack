@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:bustrack/xdummy/authscreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 class SeatListScreen extends StatefulWidget {
   const SeatListScreen({super.key});
@@ -16,6 +18,9 @@ class _SeatListScreenState extends State<SeatListScreen> {
 
   int _seatCount = 0;
   List<Map<String, dynamic>> _seats = [];
+  bool _isTracking = false;
+  Timer? _timer;
+  User? _user = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
@@ -23,35 +28,41 @@ class _SeatListScreenState extends State<SeatListScreen> {
     _fetchSeatCount();
   }
 
-  // ✅ Fetch seat count & data
-Future<void> _fetchSeatCount() async {
-  try {
-    String uid = _auth.currentUser!.uid;
-    DocumentSnapshot driverDoc = await _firestore.collection("driver").doc(uid).get();
-
-    if (driverDoc.exists && driverDoc.data() != null) {
-      int seatCount = driverDoc["seats"] ?? 0;
-      Map<String, dynamic> seatData = Map<String, dynamic>.from(driverDoc["seats_data"] ?? {});
-
-      setState(() {
-        _seatCount = seatCount;
-        _seats = List.generate(seatCount, (index) {
-          String key = "${index + 1}";
-          return seatData.containsKey(key)
-              ? seatData[key] as Map<String, dynamic>
-              : {
-                  "student_id": "S${index + 1}",
-                  "student_name": "Seat ${index + 1}",
-                  "status": "Empty",
-                };
-        });
-      });
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-  }
+  @override
+void dispose() {
+  _timer?.cancel(); // Directly cancel the timer
+  super.dispose();
 }
 
+
+  // ✅ Fetch seat count & data
+  Future<void> _fetchSeatCount() async {
+    try {
+      String uid = _auth.currentUser!.uid;
+      DocumentSnapshot driverDoc = await _firestore.collection("driver").doc(uid).get();
+
+      if (driverDoc.exists && driverDoc.data() != null) {
+        int seatCount = driverDoc["seats"] ?? 0;
+        Map<String, dynamic> seatData = Map<String, dynamic>.from(driverDoc["seats_data"] ?? {});
+
+        setState(() {
+          _seatCount = seatCount;
+          _seats = List.generate(seatCount, (index) {
+            String key = "${index + 1}";
+            return seatData.containsKey(key)
+                ? seatData[key] as Map<String, dynamic>
+                : {
+                    "student_id": "S${index + 1}",
+                    "student_name": "Seat ${index + 1}",
+                    "status": "Empty",
+                  };
+          });
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
 
   // ✅ Update seat status
   void _updateStatus(int index, String newStatus) {
@@ -79,11 +90,48 @@ Future<void> _fetchSeatCount() async {
   // ✅ Logout function
   void _logout() async {
     await _auth.signOut();
-     Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AuthScreen()),
-        );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AuthScreen()),
+    );
   }
+
+  // ✅ Function to update driver's live location in Firestore every 5 seconds
+  void _updateDriverLocation() async {
+    if (_user == null) return;
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    FirebaseFirestore.instance.collection("driver_locations").doc(_user!.uid).set({
+      "latitude": position.latitude,
+      "longitude": position.longitude,
+      "timestamp": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  // ✅ Starts live tracking and updates Firestore every 5 seconds
+  void _startTracking() {
+    setState(() {
+      _isTracking = true;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _updateDriverLocation();
+    });
+  }
+
+  // ✅ Stops live tracking and cancels the timer
+ void _stopTracking() {
+  if (mounted) {
+    setState(() {
+      _isTracking = false;
+    });
+  }
+  _timer?.cancel();
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +142,7 @@ Future<void> _fetchSeatCount() async {
         actions: [
           IconButton(
             icon: Icon(Icons.map, color: Colors.black),
-            onPressed: () {
- 
-            },
+            onPressed: () {},
           ),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.black),
@@ -143,7 +189,6 @@ Future<void> _fetchSeatCount() async {
                                 ),
                                 Text("ID: ${_seats[index]["student_id"]}"),
                                 SizedBox(height: 10),
-
                                 Expanded(
                                   child: DropdownButton<String>(
                                     value: _seats[index]["status"],
@@ -177,6 +222,19 @@ Future<void> _fetchSeatCount() async {
           ),
           SizedBox(height: 10),
         ],
+      ),
+
+      // ✅ Floating Button to Start/Stop Live Tracking
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_isTracking) {
+            _stopTracking();
+          } else {
+            _startTracking();
+          }
+        },
+        backgroundColor: _isTracking ? Colors.red : Colors.green,
+        child: Icon(_isTracking ? Icons.stop : Icons.play_arrow),
       ),
     );
   }
