@@ -5,10 +5,6 @@ import 'package:bustrack/xdummy/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-=======
-
->>>>>>> 388997354936ed5b047c9ff49c3d5c9124d2b1b5
 
 class AuthForm extends StatefulWidget {
   final String userType;

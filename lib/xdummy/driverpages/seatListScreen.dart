@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:bustrack/xdummy/authscreen.dart';
+import 'package:bustrack/xdummy/chatscreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
   List<Map<String, dynamic>> _seats = [];
   bool _isTracking = false;
   Timer? _timer;
+  String? _busId; // Stores bus ID
   User? _user = FirebaseAuth.instance.currentUser;
 
   @override
@@ -29,13 +31,12 @@ class _SeatListScreenState extends State<SeatListScreen> {
   }
 
   @override
-void dispose() {
-  _timer?.cancel(); // Directly cancel the timer
-  super.dispose();
-}
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
-
-  // ✅ Fetch seat count & data
+  // ✅ Fetch seat count & bus ID
   Future<void> _fetchSeatCount() async {
     try {
       String uid = _auth.currentUser!.uid;
@@ -47,6 +48,7 @@ void dispose() {
 
         setState(() {
           _seatCount = seatCount;
+         // ✅ Fetch bus ID
           _seats = List.generate(seatCount, (index) {
             String key = "${index + 1}";
             return seatData.containsKey(key)
@@ -64,28 +66,22 @@ void dispose() {
     }
   }
 
-  // ✅ Update seat status
-  void _updateStatus(int index, String newStatus) {
-    setState(() {
-      _seats[index]["status"] = newStatus;
-    });
+  // ✅ Navigate to ChatScreen
+void _openChatScreen() {
+  if (_auth.currentUser != null) {
+    String busId = _auth.currentUser!.uid; // Use UID as bus ID
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(busId: busId), // Pass UID as busId
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("User not logged in!")));
   }
+}
 
-  // ✅ Save seat data to Firestore
-  Future<void> _saveSeatData() async {
-    try {
-      String uid = _auth.currentUser!.uid;
-
-      await _firestore.collection("driver").doc(uid).update({
-        "seats_data": _seats,
-        "timestamp": FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Seat details saved successfully!")));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-    }
-  }
 
   // ✅ Logout function
   void _logout() async {
@@ -96,43 +92,6 @@ void dispose() {
     );
   }
 
-  // ✅ Function to update driver's live location in Firestore every 5 seconds
-  void _updateDriverLocation() async {
-    if (_user == null) return;
-
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    FirebaseFirestore.instance.collection("driver_locations").doc(_user!.uid).set({
-      "latitude": position.latitude,
-      "longitude": position.longitude,
-      "timestamp": FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
-  // ✅ Starts live tracking and updates Firestore every 5 seconds
-  void _startTracking() {
-    setState(() {
-      _isTracking = true;
-    });
-
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _updateDriverLocation();
-    });
-  }
-
-  // ✅ Stops live tracking and cancels the timer
- void _stopTracking() {
-  if (mounted) {
-    setState(() {
-      _isTracking = false;
-    });
-  }
-  _timer?.cancel();
-}
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,8 +100,8 @@ void dispose() {
         backgroundColor: Colors.yellow,
         actions: [
           IconButton(
-            icon: Icon(Icons.map, color: Colors.black),
-            onPressed: () {},
+            icon: Icon(Icons.chat, color: Colors.black),
+            onPressed: _openChatScreen, // ✅ Chat icon added
           ),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.black),
@@ -194,7 +153,9 @@ void dispose() {
                                     value: _seats[index]["status"],
                                     onChanged: (String? newValue) {
                                       if (newValue != null) {
-                                        _updateStatus(index, newValue);
+                                        setState(() {
+                                          _seats[index]["status"] = newValue;
+                                        });
                                       }
                                     },
                                     items: ["Empty", "Absent", "Present"]
@@ -216,25 +177,24 @@ void dispose() {
           ),
           SizedBox(height: 10),
           ElevatedButton(
-            onPressed: _saveSeatData,
+            onPressed: () async {
+              try {
+                String uid = _auth.currentUser!.uid;
+                await _firestore.collection("driver").doc(uid).update({
+                  "seats_data": _seats,
+                  "timestamp": FieldValue.serverTimestamp(),
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Seat details saved successfully!")));
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+              }
+            },
             child: Text("Save Seat Details"),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
           ),
           SizedBox(height: 10),
         ],
-      ),
-
-      // ✅ Floating Button to Start/Stop Live Tracking
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_isTracking) {
-            _stopTracking();
-          } else {
-            _startTracking();
-          }
-        },
-        backgroundColor: _isTracking ? Colors.red : Colors.green,
-        child: Icon(_isTracking ? Icons.stop : Icons.play_arrow),
       ),
     );
   }
