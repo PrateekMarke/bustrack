@@ -21,7 +21,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
   List<Map<String, dynamic>> _seats = [];
   bool _isTracking = false;
   Timer? _timer;
-  String? _busId; // Stores bus ID
+
   User? _user = FirebaseAuth.instance.currentUser;
 
   @override
@@ -40,48 +40,120 @@ class _SeatListScreenState extends State<SeatListScreen> {
   Future<void> _fetchSeatCount() async {
     try {
       String uid = _auth.currentUser!.uid;
-      DocumentSnapshot driverDoc = await _firestore.collection("driver").doc(uid).get();
+      DocumentSnapshot driverDoc =
+          await _firestore.collection("driver").doc(uid).get();
 
       if (driverDoc.exists && driverDoc.data() != null) {
         int seatCount = driverDoc["seats"] ?? 0;
-        Map<String, dynamic> seatData = Map<String, dynamic>.from(driverDoc["seats_data"] ?? {});
+        Map<String, dynamic> seatData = Map<String, dynamic>.from(
+          driverDoc["seats_data"] ?? {},
+        );
 
         setState(() {
           _seatCount = seatCount;
-         // ✅ Fetch bus ID
+          // ✅ Fetch bus ID
           _seats = List.generate(seatCount, (index) {
             String key = "${index + 1}";
             return seatData.containsKey(key)
                 ? seatData[key] as Map<String, dynamic>
                 : {
-                    "student_id": "S${index + 1}",
-                    "student_name": "Seat ${index + 1}",
-                    "status": "Empty",
-                  };
+                  "student_id": "S${index + 1}",
+                  "student_name": "Seat ${index + 1}",
+                  "status": "Empty",
+                };
           });
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     }
   }
 
   // ✅ Navigate to ChatScreen
-void _openChatScreen() {
-  if (_auth.currentUser != null) {
-    String busId = _auth.currentUser!.uid; // Use UID as bus ID
+  void _openChatScreen() {
+    if (_auth.currentUser != null) {
+      String busId = _auth.currentUser!.uid; // Use UID as bus ID
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(busId: busId), // Pass UID as busId
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("User not logged in!")));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(busId: busId), // Pass UID as busId
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("User not logged in!")));
+    }
   }
-}
 
+  // ✅ Update seat status
+  void _updateStatus(int index, String newStatus) {
+    setState(() {
+      _seats[index]["status"] = newStatus;
+    });
+  }
+
+  // ✅ Save seat data to Firestore
+  Future<void> _saveSeatData() async {
+    try {
+      String uid = _auth.currentUser!.uid;
+
+      await _firestore.collection("driver").doc(uid).update({
+        "seats_data": _seats,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Seat details saved successfully!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
+
+  // ✅ Function to update driver's live location in Firestore every 5 seconds
+  void _updateDriverLocation() async {
+    if (_user == null) return;
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    FirebaseFirestore.instance
+        .collection("driver_locations")
+        .doc(_user!.uid)
+        .set({
+          "latitude": position.latitude,
+          "longitude": position.longitude,
+          "timestamp": FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+  }
+
+  // ✅ Starts live tracking and updates Firestore every 5 seconds
+  void _startTracking() {
+    setState(() {
+      _isTracking = true;
+    });
+
+    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _updateDriverLocation();
+    });
+  }
+
+  // ✅ Stops live tracking and cancels the timer
+  void _stopTracking() {
+    if (mounted) {
+      setState(() {
+        _isTracking = false;
+      });
+    }
+    _timer?.cancel();
+  }
 
   // ✅ Logout function
   void _logout() async {
@@ -119,82 +191,89 @@ void _openChatScreen() {
             ),
           ),
           Expanded(
-            child: _seatCount == 0
-                ? Center(child: CircularProgressIndicator())
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: _seatCount,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(10.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _seats[index]["student_name"],
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text("ID: ${_seats[index]["student_id"]}"),
-                                SizedBox(height: 10),
-                                Expanded(
-                                  child: DropdownButton<String>(
-                                    value: _seats[index]["status"],
-                                    onChanged: (String? newValue) {
-                                      if (newValue != null) {
-                                        setState(() {
-                                          _seats[index]["status"] = newValue;
-                                        });
-                                      }
-                                    },
-                                    items: ["Empty", "Absent", "Present"]
-                                        .map<DropdownMenuItem<String>>((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
+            child:
+                _seatCount == 0
+                    ? Center(child: CircularProgressIndicator())
+                    : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemCount: _seatCount,
+                        itemBuilder: (context, index) {
+                          return Card(
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ),
-                        );
-                      },
+                            child: Padding(
+                              padding: EdgeInsets.all(10.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _seats[index]["student_name"],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text("ID: ${_seats[index]["student_id"]}"),
+                                  SizedBox(height: 10),
+                                  Expanded(
+                                    child: DropdownButton<String>(
+                                      value: _seats[index]["status"],
+                                      onChanged: (String? newValue) {
+                                        if (newValue != null) {
+                                       _updateStatus(index, newValue);
+                                        }
+                                      },
+                                      items:
+                                          [
+                                            "Empty",
+                                            "Absent",
+                                            "Present",
+                                          ].map<DropdownMenuItem<String>>((
+                                            String value,
+                                          ) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Text(value),
+                                            );
+                                          }).toList(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
           ),
           SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                String uid = _auth.currentUser!.uid;
-                await _firestore.collection("driver").doc(uid).update({
-                  "seats_data": _seats,
-                  "timestamp": FieldValue.serverTimestamp(),
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Seat details saved successfully!")));
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-              }
-            },
+            onPressed: _saveSeatData,
             child: Text("Save Seat Details"),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
           ),
           SizedBox(height: 10),
         ],
+      ),
+      // ✅ Floating Button to Start/Stop Live Tracking
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_isTracking) {
+            _stopTracking();
+          } else {
+            _startTracking();
+          }
+        },
+        backgroundColor: _isTracking ? Colors.red : Colors.green,
+        child: Icon(_isTracking ? Icons.stop : Icons.play_arrow),
       ),
     );
   }
