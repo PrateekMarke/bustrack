@@ -1,5 +1,4 @@
-
-import 'package:bustrack/xdummy/authform.dart';
+import 'package:bustrack/core/auth/authform.dart';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,7 +8,8 @@ class AuthScreen extends StatefulWidget {
   _AuthScreenState createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -23,19 +23,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // if (snapshot.hasData) {
-        //   return Myhome(); // Redirect to Home if logged in
-        // }
         return Scaffold(
           appBar: AppBar(title: Text("Bus Track - Login/Signup")),
           body: Column(
             children: [
               TabBar(
                 controller: _tabController,
-                tabs: [
-                  Tab(text: "Student"),
-                  Tab(text: "Driver"),
-                ],
+                tabs: [Tab(text: "Student"), Tab(text: "Driver")],
               ),
               Expanded(
                 child: TabBarView(

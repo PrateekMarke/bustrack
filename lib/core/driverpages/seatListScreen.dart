@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:bustrack/xdummy/authscreen.dart';
-import 'package:bustrack/xdummy/chatscreen.dart';
+import 'package:bustrack/core/auth/authscreen.dart';
+import 'package:bustrack/core/chatscreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -74,13 +74,11 @@ class _SeatListScreenState extends State<SeatListScreen> {
   // ✅ Navigate to ChatScreen
   void _openChatScreen() {
     if (_auth.currentUser != null) {
-      String busId = _auth.currentUser!.uid; // Use UID as bus ID
+      String busId = _auth.currentUser!.uid;
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(busId: busId), // Pass UID as busId
-        ),
+        MaterialPageRoute(builder: (context) => ChatScreen(busId: busId)),
       );
     } else {
       ScaffoldMessenger.of(
@@ -89,7 +87,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
     }
   }
 
-  // ✅ Update seat status
   void _updateStatus(int index, String newStatus) {
     setState(() {
       _seats[index]["status"] = newStatus;
@@ -134,7 +131,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
         }, SetOptions(merge: true));
   }
 
-  // ✅ Starts live tracking and updates Firestore every 5 seconds
   void _startTracking() {
     setState(() {
       _isTracking = true;
@@ -145,7 +141,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
     });
   }
 
-  // ✅ Stops live tracking and cancels the timer
   void _stopTracking() {
     if (mounted) {
       setState(() {
@@ -155,7 +150,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
     _timer?.cancel();
   }
 
-  // ✅ Logout function
   void _logout() async {
     await _auth.signOut();
     Navigator.pushReplacement(
@@ -173,7 +167,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.chat, color: Colors.black),
-            onPressed: _openChatScreen, // ✅ Chat icon added
+            onPressed: _openChatScreen,
           ),
           IconButton(
             icon: Icon(Icons.logout, color: Colors.black),
@@ -228,7 +222,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
                                       value: _seats[index]["status"],
                                       onChanged: (String? newValue) {
                                         if (newValue != null) {
-                                       _updateStatus(index, newValue);
+                                          _updateStatus(index, newValue);
                                         }
                                       },
                                       items:
@@ -263,7 +257,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
           SizedBox(height: 10),
         ],
       ),
-      // ✅ Floating Button to Start/Stop Live Tracking
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           if (_isTracking) {

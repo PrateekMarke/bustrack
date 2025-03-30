@@ -1,6 +1,6 @@
-import 'package:bustrack/xdummy/authscreen.dart';
-import 'package:bustrack/xdummy/chatscreen.dart';
-import 'package:bustrack/xdummy/studentspages/studentbusstracking.dart';
+import 'package:bustrack/core/auth/authscreen.dart';
+import 'package:bustrack/core/chatscreen.dart';
+import 'package:bustrack/core/studentspages/studentbusstracking.dart';
 import 'package:flutter/material.dart';
 
 class TrackBusScreen extends StatelessWidget {
@@ -10,9 +10,7 @@ class TrackBusScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("Selected Bus Data: $selectedBus"); // ✅ Debugging print statement
-
-    // ✅ Fetch bus_id safely from selectedBus
+    print("Selected Bus Data: $selectedBus"); 
     String? busId = selectedBus['id']?.toString();
 
     return Scaffold(
@@ -23,7 +21,7 @@ class TrackBusScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.chat),
             onPressed: () {
-              print("Bus ID: $busId"); // ✅ Print busId for debugging
+              print("Bus ID: $busId"); 
               if (busId != null && busId.isNotEmpty) {
                 Navigator.push(
                   context,
@@ -41,7 +39,7 @@ class TrackBusScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => AuthScreen(),
@@ -54,7 +52,7 @@ class TrackBusScreen extends StatelessWidget {
       body: Center(
         child: ElevatedButton(
           onPressed: () {
-            print("Navigating to TrackingMapScreen with busId: $busId"); // ✅ Debugging print
+            print("Navigating to TrackingMapScreen with busId: $busId"); 
             Navigator.push(
               context,
               MaterialPageRoute(

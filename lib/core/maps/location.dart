@@ -8,7 +8,7 @@ class LocationService {
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,
-        distanceFilter: 10, // Update location every 10 meters
+        distanceFilter: 10,
       ),
     ).listen((Position position) {
       onLocationUpdated(LatLng(position.latitude, position.longitude));
@@ -45,7 +45,7 @@ class LocationService {
 
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
-        forceAndroidLocationManager: true, // Prevents Google Play Services issues
+        forceAndroidLocationManager: true, 
       );
 
       LatLng userLocation = LatLng(position.latitude, position.longitude);
@@ -89,11 +89,11 @@ class LocationService {
 
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
-        forceAndroidLocationManager: true, // Prevents Google Play Services issues
+        forceAndroidLocationManager: true, 
       );
 
       LatLng userLocation = LatLng(position.latitude, position.longitude);
-      return userLocation; // ✅ No map movement here
+      return userLocation;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error fetching location: ${e.toString()}")),

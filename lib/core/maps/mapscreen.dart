@@ -1,5 +1,5 @@
 
-import 'package:bustrack/xdummy/maps/location.dart';
+import 'package:bustrack/core/maps/location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +17,7 @@ class MyMapscreen extends StatefulWidget {
 class _MapscreenState extends State<MyMapscreen> {
   final MapController _mapController = MapController();
   LatLng? _currentLocation;
+  // ignore: unused_field
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocationService _locationService = LocationService();
