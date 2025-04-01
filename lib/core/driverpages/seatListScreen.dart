@@ -35,8 +35,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
     _timer?.cancel();
     super.dispose();
   }
-
-  // ✅ Fetch seat count & bus ID
   Future<void> _fetchSeatCount() async {
     try {
       String uid = _auth.currentUser!.uid;
@@ -51,7 +49,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
 
         setState(() {
           _seatCount = seatCount;
-          // ✅ Fetch bus ID
+
           _seats = List.generate(seatCount, (index) {
             String key = "${index + 1}";
             return seatData.containsKey(key)
@@ -71,7 +69,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
     }
   }
 
-  // ✅ Navigate to ChatScreen
   void _openChatScreen() {
     if (_auth.currentUser != null) {
       String busId = _auth.currentUser!.uid;
@@ -112,8 +109,6 @@ class _SeatListScreenState extends State<SeatListScreen> {
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     }
   }
-
-  // ✅ Function to update driver's live location in Firestore every 5 seconds
   void _updateDriverLocation() async {
     if (_user == null) return;
 

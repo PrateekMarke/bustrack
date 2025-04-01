@@ -103,16 +103,13 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
     }
   }
 
-  /// **Update Student's Location & Recalculate Route**
   Future<void> _updateStudentLocation() async {
     try {
       LatLng? location = await _locationService.getUserLocation(_mapController, context);
       if (location != null) {
         setState(() {
-          _studentLocation = location; // ✅ Update student location on map
+          _studentLocation = location; 
         });
-
-        // ✅ Save new student location in Firestore
         User? user = _auth.currentUser;
         if (user != null) {
           await FirebaseFirestore.instance.collection("students").doc(user.uid).set({
@@ -125,8 +122,6 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
             const SnackBar(content: Text("📍 Location updated successfully!")),
           );
         }
-
-        // ✅ Update the polyline route from new student location
         _updateRoute();
       }
     } catch (e) {
@@ -153,7 +148,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               ),
-              // ✅ Bus Marker
+
               if (_busLocation != null)
                 MarkerLayer(
                   markers: [
@@ -169,7 +164,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
                     ),
                   ],
                 ),
-              // ✅ Student Marker
+
               if (_studentLocation != null)
                 MarkerLayer(
                   markers: [
@@ -185,7 +180,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
                     ),
                   ],
                 ),
-              // ✅ Polyline Route
+
               if (_polylinePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
@@ -198,7 +193,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
                 ),
             ],
           ),
-          // ✅ Distance & Duration Display
+
           if (_distance.isNotEmpty && _duration.isNotEmpty)
             Positioned(
               top: 10,
