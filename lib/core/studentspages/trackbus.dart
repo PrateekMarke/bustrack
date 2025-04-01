@@ -4,14 +4,19 @@ import 'package:bustrack/core/studentspages/studentbusstracking.dart';
 import 'package:flutter/material.dart';
 
 class TrackBusScreen extends StatelessWidget {
-  final Map<String, dynamic> selectedBus; // Selected Bus Info
+  final Map<String, dynamic> selectedBus; 
 
   const TrackBusScreen({super.key, required this.selectedBus});
 
   @override
   Widget build(BuildContext context) {
     print("Selected Bus Data: $selectedBus"); 
+
     String? busId = selectedBus['id']?.toString();
+    String driverName = selectedBus['name'] ?? "Unknown";
+    String busName = selectedBus['bus_name'] ?? "Unknown";
+    String contact = selectedBus['contact'] ?? "N/A";
+    int seatCount = selectedBus['seats'] ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -49,18 +54,57 @@ class TrackBusScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            print("Navigating to TrackingMapScreen with busId: $busId"); 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TrackingMapScreen(selectedBus: selectedBus),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Driver Information",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Text("👤 Driver: $driverName", style: const TextStyle(fontSize: 16)),
+                    Text("🚌 Bus Name: $busName", style: const TextStyle(fontSize: 16)),
+                    Text("📞 Contact: $contact", style: const TextStyle(fontSize: 16)),
+                    Text("💺 Seats: $seatCount", style: const TextStyle(fontSize: 16)),
+                  ],
+                ),
               ),
-            );
-          },
-          child: const Text("🚍 Track My Bus"),
+            ),
+
+            const SizedBox(height: 20),
+
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  print("Navigating to TrackingMapScreen with busId: $busId"); 
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TrackingMapScreen(selectedBus: selectedBus),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  
+                ),
+                child: const Text(
+                  "🚍 Track My Bus",
+                  
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

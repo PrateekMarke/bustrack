@@ -32,14 +32,13 @@ class _MapscreenState extends State<MyMapscreen> {
     });
   }
 
-  // ✅ Store Driver's Location in Firestore
   Future<void> storeDriverLocation(LatLng location) async {
   try {
     User? user = _auth.currentUser;
     if (user == null) {
       throw FirebaseAuthException(code: "not-authenticated", message: "User is not authenticated.");
     }
-      String uid = user.uid; // Get current driver ID
+      String uid = user.uid;
 
     await FirebaseFirestore.instance.collection("driver_locations").doc(uid).set({
       "latitude": location.latitude,
@@ -52,7 +51,6 @@ class _MapscreenState extends State<MyMapscreen> {
         SnackBar(content: Text("Location updated successfully!")),
       );
 
-      // Use 'mounted' before popping to avoid errors
       if (mounted) {
         Navigator.pop(context, location);
       }
