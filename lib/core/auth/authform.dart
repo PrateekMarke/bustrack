@@ -1,3 +1,4 @@
+import 'package:bustrack/admin/adminscreen.dart';
 import 'package:bustrack/core/driverpages/driverscreen.dart';
 import 'package:bustrack/core/driverpages/seatListScreen.dart';
 import 'package:bustrack/core/studentspages/studentscreen.dart';
@@ -22,6 +23,12 @@ class _AuthFormState extends State<AuthForm> {
   final TextEditingController _passwordController = TextEditingController();
   bool isLogin = true;
   bool isLoading = false;
+
+  final List<String> allowedAdminEmails = [
+    "admin1@example.com",
+    "admin2@example.com",
+  ];
+
   void authenticate() async {
     setState(() => isLoading = true);
     try {
@@ -37,16 +44,40 @@ class _AuthFormState extends State<AuthForm> {
           password: _passwordController.text.trim(),
         );
       }
+
       User? user = userCredential.user;
       if (user == null) return;
-      //student flow
+
+      /// ✅ Admin Flow (check email before proceeding)
+      if (widget.userType == "Admin") {
+        if (!allowedAdminEmails.contains(user.email)) {
+          await _auth.signOut();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Access denied. Not an authorized admin.")),
+          );
+          setState(() => isLoading = false);
+          return;
+        }
+
+        DocumentSnapshot adminDoc =
+            await _firestore.collection("admin").doc(user.uid).get();
+
+        if (adminDoc.exists) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+          );
+        } 
+        return;
+      }
+
+      /// ✅ Student Flow
       if (widget.userType == "Student") {
         DocumentSnapshot studentDoc =
             await _firestore.collection("students").doc(user.uid).get();
+
         if (studentDoc.exists) {
           String busId = studentDoc["bus_id"];
-          print("🚌 Student Bus ID: $busId");
-
           if (busId.isNotEmpty) {
             DocumentSnapshot busDoc =
                 await _firestore.collection("driver").doc(busId).get();
@@ -61,35 +92,35 @@ class _AuthFormState extends State<AuthForm> {
                 "latitude": busDoc["latitude"],
                 "longitude": busDoc["longitude"],
               };
-              print("🚍 Navigating to TrackBusScreen with bus: $selectedBus");
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => TrackBusScreen(selectedBus: selectedBus),
+                  builder: (context) =>
+                      TrackBusScreen(selectedBus: selectedBus),
                 ),
               );
               return;
             } else {
-              print("⚠️ Bus not found for ID: $busId");
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Bus not found!")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Bus not found!")),
+              );
             }
           } else {
-            print("⚠️ No Bus ID found in student data!");
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("No bus assigned!")));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("No bus assigned!")),
+            );
           }
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => StudentDetailsScreen()),
+          );
         }
-        print("⚠️ No student data found! Redirecting to StudentDetailsScreen.");
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => StudentDetailsScreen()),
-        );
-      } else {
-        // ✅ Driver Flow
+      }
+
+      /// ✅ Driver Flow
+      else if (widget.userType == "Driver") {
         DocumentSnapshot driverDoc =
             await _firestore.collection("driver").doc(user.uid).get();
 
@@ -148,9 +179,9 @@ class _AuthFormState extends State<AuthForm> {
           isLoading
               ? CircularProgressIndicator()
               : ElevatedButton(
-                onPressed: authenticate,
-                child: Text(isLogin ? "Login" : "Sign Up"),
-              ),
+                  onPressed: authenticate,
+                  child: Text(isLogin ? "Login" : "Sign Up"),
+                ),
 
           TextButton(
             onPressed: () => setState(() => isLogin = !isLogin),

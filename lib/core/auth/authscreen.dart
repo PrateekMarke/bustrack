@@ -15,7 +15,7 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -29,7 +29,11 @@ class _AuthScreenState extends State<AuthScreen>
             children: [
               TabBar(
                 controller: _tabController,
-                tabs: [Tab(text: "Student"), Tab(text: "Driver")],
+                tabs: [
+                  Tab(text: "Student"),
+                  Tab(text: "Driver"),
+                  Tab(text: "Admin"),
+                ],
               ),
               Expanded(
                 child: TabBarView(
@@ -37,6 +41,7 @@ class _AuthScreenState extends State<AuthScreen>
                   children: [
                     AuthForm(userType: "Student"),
                     AuthForm(userType: "Driver"),
+                    AuthForm(userType: "Admin"),
                   ],
                 ),
               ),
