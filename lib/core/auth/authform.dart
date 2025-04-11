@@ -25,7 +25,7 @@ class _AuthFormState extends State<AuthForm> {
   bool isLoading = false;
 
   final List<String> allowedAdminEmails = [
-    "admin1@example.com",
+    "admin1@gmail.edu",
     "admin2@example.com",
   ];
 
@@ -49,27 +49,38 @@ class _AuthFormState extends State<AuthForm> {
       if (user == null) return;
 
       /// ✅ Admin Flow (check email before proceeding)
-      if (widget.userType == "Admin") {
-        if (!allowedAdminEmails.contains(user.email)) {
-          await _auth.signOut();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Access denied. Not an authorized admin.")),
-          );
-          setState(() => isLoading = false);
-          return;
-        }
+     else if (widget.userType == "Admin") {
+  QuerySnapshot adminSnapshot = await _firestore.collection("admin").get();
 
-        DocumentSnapshot adminDoc =
-            await _firestore.collection("admin").doc(user.uid).get();
+  bool isFirstAdmin = adminSnapshot.docs.isEmpty;
 
-        if (adminDoc.exists) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
-          );
-        } 
-        return;
-      }
+  if (!isFirstAdmin && !allowedAdminEmails.contains(user.email)) {
+    await _auth.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Access denied. Not an authorized admin.")),
+    );
+    setState(() => isLoading = false);
+    return;
+  }
+
+  DocumentSnapshot adminDoc =
+      await _firestore.collection("admin").doc(user.uid).get();
+
+  if (adminDoc.exists) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+    );
+  }
+  else{
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+    );
+  }
+  return;
+}
+
 
       /// ✅ Student Flow
       if (widget.userType == "Student") {
