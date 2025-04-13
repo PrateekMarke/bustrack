@@ -1,6 +1,7 @@
 import 'package:bustrack/core/auth/authscreen.dart';
 import 'package:bustrack/core/studentspages/trackbus.dart';
 import 'package:bustrack/core/driverpages/seatListScreen.dart';
+import 'package:bustrack/admin/adminscreen.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,75 +23,92 @@ class _SplashScreenState extends State<SplashScreen> {
       _navigateUser();
     });
   }
-Future<void> _navigateUser() async {
-  User? user = _auth.currentUser;
 
-  if (user != null) {
-    print("✅ User Logged In: ${user.uid}");
+  Future<void> _navigateUser() async {
+    User? user = _auth.currentUser;
 
-    DocumentSnapshot studentDoc = await _firestore.collection("students").doc(user.uid).get();
+    if (user != null) {
+      print("✅ User Logged In: ${user.uid}");
 
-    if (studentDoc.exists) {
-      String busId = studentDoc["bus_id"];
-      print("🚌 Found Bus ID: $busId for student ${user.uid}");
+      DocumentSnapshot studentDoc =
+          await _firestore.collection("students").doc(user.uid).get();
 
-      DocumentSnapshot busDoc = await _firestore.collection("driver").doc(busId).get();
+      if (studentDoc.exists) {
+        String busId = studentDoc["bus_id"];
+        print("🚌 Found Bus ID: $busId for student ${user.uid}");
 
-      if (busDoc.exists) {
-        Map<String, dynamic> selectedBus = {
-          "id": busDoc.id,
-          "bus_name": busDoc["bus_name"],
-          "name": busDoc["name"],
-          "contact": busDoc["contact"],
-          "seats": busDoc["seats"],
-          "seats_data": busDoc["seats_data"],
-          "latitude": busDoc["latitude"],
-          "longitude": busDoc["longitude"],
-        };
+        DocumentSnapshot busDoc =
+            await _firestore.collection("driver").doc(busId).get();
 
-        print("🚍 Bus Details Fetched Successfully: $selectedBus");
+        if (busDoc.exists) {
+          Map<String, dynamic> selectedBus = {
+            "id": busDoc.id,
+            "bus_name": busDoc["bus_name"],
+            "name": busDoc["name"],
+            "contact": busDoc["contact"],
+            "seats": busDoc["seats"],
+            "seats_data": busDoc["seats_data"],
+            "latitude": busDoc["latitude"],
+            "longitude": busDoc["longitude"],
+          };
 
-        Future.delayed(Duration(milliseconds: 500), () {
-          _redirectTo(TrackBusScreen(selectedBus: selectedBus));
-        });
+          print("🚍 Bus Details Fetched Successfully: $selectedBus");
 
+          Future.delayed(Duration(milliseconds: 500), () {
+            _redirectTo(TrackBusScreen(selectedBus: selectedBus));
+          });
+
+        } else {
+          print("⚠️ No Bus Found for ID: $busId!");
+          Future.delayed(Duration(milliseconds: 500), () {
+            _redirectTo(AuthScreen());
+          });
+        }
       } else {
-        print("⚠️ No Bus Found for ID: $busId!");
-        Future.delayed(Duration(milliseconds: 500), () {
-          _redirectTo(AuthScreen());
-        });
+        print("⚠️ No Student Data Found for UID: ${user.uid}");
+        DocumentSnapshot driverDoc =
+            await _firestore.collection("driver").doc(user.uid).get();
+
+        if (driverDoc.exists) {
+          print("✅ User is a Driver. Redirecting...");
+          Future.delayed(Duration(milliseconds: 500), () {
+            _redirectTo(SeatListScreen());
+          });
+        } else {
+          // ✅ Admin flow added here without changing rest
+          DocumentSnapshot adminDoc =
+              await _firestore.collection("admin").doc(user.uid).get();
+
+          if (adminDoc.exists) {
+            print("👑 User is an Admin. Redirecting...");
+            Future.delayed(Duration(milliseconds: 500), () {
+              _redirectTo(AdminDashboardScreen());
+            });
+          } else {
+            print("❌ User is neither Student, Driver, nor Admin!");
+            Future.delayed(Duration(milliseconds: 500), () {
+              _redirectTo(AuthScreen());
+            });
+          }
+        }
       }
     } else {
-      print("⚠️ No Student Data Found for UID: ${user.uid}");
-      DocumentSnapshot driverDoc = await _firestore.collection("driver").doc(user.uid).get();
-
-      if (driverDoc.exists) {
-        print("✅ User is a Driver. Redirecting...");
-        Future.delayed(Duration(milliseconds: 500), () {
-          _redirectTo(SeatListScreen());
-        });
-      } else {
-        print("❌ User is neither Student nor Driver!");
-        Future.delayed(Duration(milliseconds: 500), () {
-          _redirectTo(AuthScreen());
-        });
-      }
+      print("❌ No Logged-in User. Redirecting to AuthScreen.");
+      Future.delayed(Duration(milliseconds: 500), () {
+        _redirectTo(AuthScreen());
+      });
     }
-  } else {
-    print("❌ No Logged-in User. Redirecting to AuthScreen.");
-    Future.delayed(Duration(milliseconds: 500), () {
-      _redirectTo(AuthScreen());
-    });
   }
-}
-void _redirectTo(Widget screen) {
-  if (mounted) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+
+  void _redirectTo(Widget screen) {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
