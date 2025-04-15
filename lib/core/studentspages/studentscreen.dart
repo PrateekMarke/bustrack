@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:bustrack/core/maps/location.dart';
 import 'package:bustrack/core/studentspages/trackbus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -187,7 +188,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Student Details"),
-        backgroundColor: Colors.yellow,
+         backgroundColor: AppColors.appbarColor,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

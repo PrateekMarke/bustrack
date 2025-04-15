@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:bustrack/core/auth/authscreen.dart';
 import 'package:bustrack/core/chatscreen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -158,7 +159,7 @@ class _SeatListScreenState extends State<SeatListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Seat List"),
-        backgroundColor: Colors.yellow,
+       backgroundColor: AppColors.appbarColor,
         actions: [
           IconButton(
             icon: Icon(Icons.chat, color: Colors.black),

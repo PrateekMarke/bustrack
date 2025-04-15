@@ -1,5 +1,7 @@
 
 import 'package:bustrack/admin/adminbustracking.dart';
+import 'package:bustrack/admin/bus_details.dart';
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -58,6 +60,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Admin Dashboard"),
+        backgroundColor: AppColors.appbarColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -88,6 +91,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               final busData = bus.data() as Map<String, dynamic>;
 
               return ListTile(
+               onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => BusDetailsScreen(busId: bus.id),
+    ),
+  );
+},
+
+
                 title: Text(busData["bus_name"] ?? "Unknown Bus"),
                 subtitle: Text("Driver: ${busData["name"] ?? "No Name"}"),
                 trailing: Row(

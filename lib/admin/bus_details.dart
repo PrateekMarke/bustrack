@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -26,7 +27,7 @@ class BusDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Bus Details")),
+      appBar: AppBar(title: const Text("Bus Details"),backgroundColor: AppColors.appbarColor,),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchDetails(),
         builder: (context, snapshot) {

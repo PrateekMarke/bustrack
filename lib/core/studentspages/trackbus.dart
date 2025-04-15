@@ -1,17 +1,16 @@
+import 'dart:ui';
 import 'package:bustrack/core/auth/authscreen.dart';
 import 'package:bustrack/core/chatscreen.dart';
 import 'package:bustrack/core/studentspages/studentbusstracking.dart';
 import 'package:flutter/material.dart';
 
 class TrackBusScreen extends StatelessWidget {
-  final Map<String, dynamic> selectedBus; 
+  final Map<String, dynamic> selectedBus;
 
   const TrackBusScreen({super.key, required this.selectedBus});
 
   @override
   Widget build(BuildContext context) {
-    print("Selected Bus Data: $selectedBus"); 
-
     String? busId = selectedBus['id']?.toString();
     String driverName = selectedBus['name'] ?? "Unknown";
     String busName = selectedBus['bus_name'] ?? "Unknown";
@@ -20,13 +19,13 @@ class TrackBusScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Track Bus"),
-        backgroundColor: Colors.yellow,
+        elevation: 0,
+        title: const Text("Track Bus", style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF0F1115),
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat),
+            icon: const Icon(Icons.chat, color: Colors.white),
             onPressed: () {
-              print("Bus ID: $busId"); 
               if (busId != null && busId.isNotEmpty) {
                 Navigator.push(
                   context,
@@ -42,71 +41,141 @@ class TrackBusScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => AuthScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => AuthScreen()),
               );
             },
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Driver Information",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFF0F1115),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.05),
+                Colors.white.withOpacity(0.02),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Driver Info",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 10),
-                    Text("👤 Driver: $driverName", style: const TextStyle(fontSize: 16)),
-                    Text("🚌 Bus Name: $busName", style: const TextStyle(fontSize: 16)),
-                    Text("📞 Contact: $contact", style: const TextStyle(fontSize: 16)),
-                    Text("💺 Seats: $seatCount", style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow("👤", "Driver: $driverName"),
+                        const SizedBox(height: 10),
+                        _infoRow("🚌", "Bus Name: $busName"),
+                        const SizedBox(height: 10),
+                        _infoRow("📞", "Contact: $contact"),
+                        const SizedBox(height: 10),
+                        _infoRow("💺", "Seats: $seatCount"),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // Track My Bus Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TrackingMapScreen(selectedBus: selectedBus),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blueAccent.withOpacity(0.6),
+                            offset: const Offset(0, 4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "🚌 Track My Bus",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  print("Navigating to TrackingMapScreen with busId: $busId"); 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TrackingMapScreen(selectedBus: selectedBus),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  
-                ),
-                child: const Text(
-                  "🚍 Track My Bus",
-                  
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _infoRow(String emoji, String text) {
+    return Row(
+      children: [
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 20),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 }

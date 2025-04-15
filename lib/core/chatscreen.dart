@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +60,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Chat"), backgroundColor: Colors.yellow),
+      appBar: AppBar(title: Text("Chat"),backgroundColor: AppColors.appbarColor,),
       body: Column(
         children: [
           Expanded(child: MessageStream(busId: widget.busId)),

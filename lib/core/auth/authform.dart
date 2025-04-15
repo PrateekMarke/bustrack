@@ -29,131 +29,122 @@ class _AuthFormState extends State<AuthForm> {
     "admin2@example.com",
   ];
 
-  void authenticate() async {
-    setState(() => isLoading = true);
-    try {
-      UserCredential userCredential;
-      if (isLogin) {
-        userCredential = await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      } else {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      }
+ void authenticate() async {
+  setState(() => isLoading = true);
 
-      User? user = userCredential.user;
-      if (user == null) return;
+  try {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-      /// ✅ Admin Flow (check email before proceeding)
-     else if (widget.userType == "Admin") {
-  QuerySnapshot adminSnapshot = await _firestore.collection("admin").get();
+    // ✅ Admin: Only allow listed emails to sign in or sign up
+    if (widget.userType == "Admin" && !allowedAdminEmails.contains(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Access denied. Not an authorized admin.")),
+      );
+      setState(() => isLoading = false);
+      return;
+    }
 
-  bool isFirstAdmin = adminSnapshot.docs.isEmpty;
+    UserCredential userCredential;
 
-  if (!isFirstAdmin && !allowedAdminEmails.contains(user.email)) {
-    await _auth.signOut();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Access denied. Not an authorized admin.")),
-    );
-    setState(() => isLoading = false);
-    return;
-  }
+    // 🔐 Authenticate with Firebase
+    if (isLogin) {
+      userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } else {
+      userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    }
 
-  DocumentSnapshot adminDoc =
-      await _firestore.collection("admin").doc(user.uid).get();
+    User? user = userCredential.user;
+    if (user == null) return;
 
-  if (adminDoc.exists) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
-    );
-  }
-  else{
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
-    );
-  }
-  return;
-}
+    /// ✅ Admin Flow
+    if (widget.userType == "Admin") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+      );
+      return;
+    }
 
+    /// ✅ Student Flow
+    if (widget.userType == "Student") {
+      DocumentSnapshot studentDoc =
+          await _firestore.collection("students").doc(user.uid).get();
 
-      /// ✅ Student Flow
-      if (widget.userType == "Student") {
-        DocumentSnapshot studentDoc =
-            await _firestore.collection("students").doc(user.uid).get();
+      if (studentDoc.exists) {
+        String busId = studentDoc["bus_id"];
+        if (busId.isNotEmpty) {
+          DocumentSnapshot busDoc =
+              await _firestore.collection("driver").doc(busId).get();
+          if (busDoc.exists) {
+            Map<String, dynamic> selectedBus = {
+              "id": busDoc.id,
+              "bus_name": busDoc["bus_name"],
+              "name": busDoc["name"],
+              "contact": busDoc["contact"],
+              "seats": busDoc["seats"],
+              "seats_data": busDoc["seats_data"],
+              "latitude": busDoc["latitude"],
+              "longitude": busDoc["longitude"],
+            };
 
-        if (studentDoc.exists) {
-          String busId = studentDoc["bus_id"];
-          if (busId.isNotEmpty) {
-            DocumentSnapshot busDoc =
-                await _firestore.collection("driver").doc(busId).get();
-            if (busDoc.exists) {
-              Map<String, dynamic> selectedBus = {
-                "id": busDoc.id,
-                "bus_name": busDoc["bus_name"],
-                "name": busDoc["name"],
-                "contact": busDoc["contact"],
-                "seats": busDoc["seats"],
-                "seats_data": busDoc["seats_data"],
-                "latitude": busDoc["latitude"],
-                "longitude": busDoc["longitude"],
-              };
-
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      TrackBusScreen(selectedBus: selectedBus),
-                ),
-              );
-              return;
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Bus not found!")),
-              );
-            }
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TrackBusScreen(selectedBus: selectedBus),
+              ),
+            );
+            return;
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("No bus assigned!")),
+              const SnackBar(content: Text("Bus not found!")),
             );
           }
         } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => StudentDetailsScreen()),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No bus assigned!")),
           );
         }
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => StudentDetailsScreen()),
+        );
       }
-
-      /// ✅ Driver Flow
-      else if (widget.userType == "Driver") {
-        DocumentSnapshot driverDoc =
-            await _firestore.collection("driver").doc(user.uid).get();
-
-        if (driverDoc.exists) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SeatListScreen()),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => DriverDetailsScreen()),
-          );
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "An error occurred")));
     }
-    setState(() => isLoading = false);
+
+    /// ✅ Driver Flow
+    else if (widget.userType == "Driver") {
+      DocumentSnapshot driverDoc =
+          await _firestore.collection("driver").doc(user.uid).get();
+
+      if (driverDoc.exists) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SeatListScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DriverDetailsScreen()),
+        );
+      }
+    }
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(e.message ?? "An error occurred")));
   }
+
+  setState(() => isLoading = false);
+}
+
 
   @override
   Widget build(BuildContext context) {

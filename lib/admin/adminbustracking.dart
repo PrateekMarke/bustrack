@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -44,7 +45,8 @@ class _AdminBusTrackingScreenState extends State<AdminBusTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Track ${widget.busData["bus_name"]}")),
+      appBar: AppBar(title: Text("Track ${widget.busData["bus_name"]}"),
+     backgroundColor: AppColors.appbarColor,),
       body: FlutterMap(
         mapController: _mapController,
         options: MapOptions(

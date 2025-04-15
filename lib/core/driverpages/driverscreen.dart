@@ -119,7 +119,7 @@ class _DriverDetailsScreenState extends State<DriverDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Driver Details"),
-        backgroundColor: Colors.yellow,
+        backgroundColor: const Color.fromARGB(255, 107, 255, 255),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

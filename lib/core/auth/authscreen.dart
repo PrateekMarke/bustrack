@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:bustrack/core/auth/authform.dart';
 
 import 'package:flutter/material.dart';
@@ -24,7 +25,7 @@ class _AuthScreenState extends State<AuthScreen>
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         return Scaffold(
-          appBar: AppBar(title: Text("Bus Track - Login/Signup")),
+          appBar: AppBar(title: Text("Bus Application - Login/Signup"),backgroundColor: AppColors.appbarColor,),
           body: Column(
             children: [
               TabBar(

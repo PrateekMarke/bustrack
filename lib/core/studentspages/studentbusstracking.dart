@@ -1,3 +1,4 @@
+import 'package:bustrack/const/color_pallet.dart';
 import 'package:bustrack/core/maps/direction_repository.dart';
 import 'package:bustrack/core/maps/location.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -135,7 +136,7 @@ class _TrackingMapScreenState extends State<TrackingMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Bus Tracking")),
+      appBar: AppBar(title: const Text("Bus Tracking"),backgroundColor: AppColors.appbarColor,),
       body: Stack(
         children: [
           FlutterMap(
